@@ -1,0 +1,15 @@
+# Vivado
+*.sim/
+*.runs/
+*.cache/
+*.hw/
+*.ip_user_files/
+
+# Simulation
+*.wdb
+*.vcd
+*.log
+*.jou
+
+# Xilinx temp
+.Xil/
