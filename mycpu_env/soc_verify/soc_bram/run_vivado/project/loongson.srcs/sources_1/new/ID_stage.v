@@ -37,7 +37,10 @@ module id_stage(
     //to fs
     output [`BR_BUS_WD       -1:0] br_bus        ,
     //to rf: for write back
-    input  [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus
+    input  [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus  ,
+    input   [4:0]   es_to_ds_dest,
+    input   [4:0]   ms_to_ds_dest,
+    input   [4:0]   ws_to_ds_dest
 );
 
 wire        br_taken;
@@ -127,6 +130,15 @@ wire [31:0] alu_result ;
 wire [31:0] mem_result;
 wire [31:0] final_result;
 
+wire inst_no_dest;
+wire src_no_rj;
+wire src_no_rk;
+wire src_no_rd;
+wire rj_wait;
+wire rk_wait;
+wire rd_wait;
+wire no_wait;
+
 
 assign op_31_26  = ds_inst[31:26];
 assign op_25_22  = ds_inst[25:22];
@@ -214,6 +226,7 @@ assign src2_is_imm   = inst_slli_w |
                        inst_bl     ;
 
 assign res_from_mem  = inst_ld_w;
+assign load_op       = res_from_mem;
 assign dst_is_r1     = inst_bl;
 assign gr_we         = ~inst_st_w & ~inst_beq & ~inst_bne & ~inst_b;
 assign mem_we        = inst_st_w;
@@ -241,9 +254,22 @@ assign br_taken = (   inst_beq  &&  rj_eq_rd
                    || inst_jirl
                    || inst_bl
                    || inst_b
-                )  && ds_valid;
+                )  && ds_valid & no_wait;
 assign br_target = (inst_beq || inst_bne || inst_bl || inst_b) ? (ds_pc + br_offs) :
                                                    /*inst_jirl*/ (rj_value + jirl_offs);
+
+assign inst_no_dest = inst_st_w | inst_b | inst_beq | inst_bne;
+
+assign src_no_rj    = inst_b | inst_bl | inst_lu12i_w;
+assign src_no_rk    = inst_slli_w | inst_srli_w | inst_srai_w | inst_addi_w | inst_ld_w | inst_st_w | inst_jirl | 
+                      inst_b | inst_bl | inst_beq | inst_bne | inst_lu12i_w;
+assign src_no_rd    = ~inst_st_w & ~inst_beq & ~inst_bne;
+
+assign rj_wait = ~src_no_rj && (rj != 5'b00000) && ((rj == es_to_ds_dest) || (rj == ms_to_ds_dest) || (rj == ws_to_ds_dest));
+assign rk_wait = ~src_no_rk && (rk != 5'b00000) && ((rk == es_to_ds_dest) || (rk == ms_to_ds_dest) || (rk == ws_to_ds_dest));
+assign rd_wait = ~src_no_rd && (rd != 5'b00000) && ((rd == es_to_ds_dest) || (rd == ms_to_ds_dest) || (rd == ws_to_ds_dest));
+
+assign no_wait = ~rj_wait & ~rk_wait & ~rd_wait;
 
 assign br_bus = {br_taken, br_target};
 
@@ -272,7 +298,7 @@ assign ds_to_es_bus = {alu_op       ,   // 12
                        res_from_mem
                     };
 
-assign ds_ready_go    = 1'b1;
+assign ds_ready_go    = no_wait;
 assign ds_allowin     = !ds_valid || ds_ready_go && es_allowin;
 assign ds_to_es_valid = ds_valid && ds_ready_go;
 always @(posedge clk) begin

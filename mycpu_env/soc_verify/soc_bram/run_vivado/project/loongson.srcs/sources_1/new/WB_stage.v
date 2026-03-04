@@ -36,7 +36,8 @@ module wb_stage(
     output [31:0] debug_wb_pc     ,
     output [ 3:0] debug_wb_rf_we  ,
     output [ 4:0] debug_wb_rf_wnum,
-    output [31:0] debug_wb_rf_wdata
+    output [31:0] debug_wb_rf_wdata,
+    output [ 4:0] ws_to_ds_dest
 );
 
 reg         ws_valid;
@@ -61,6 +62,7 @@ assign ws_to_rf_bus = {rf_we   ,  //37:37
                        rf_wdata   //31:0
                       };
 
+assign ws_to_ds_dest = ws_dest & {5{ws_valid}};
 assign ws_ready_go = 1'b1;
 assign ws_allowin  = !ws_valid || ws_ready_go;
 always @(posedge clk) begin
