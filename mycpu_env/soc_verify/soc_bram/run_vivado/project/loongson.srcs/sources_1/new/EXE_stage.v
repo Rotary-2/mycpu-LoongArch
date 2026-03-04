@@ -41,7 +41,8 @@ module exe_stage(
     output [31:0] data_sram_addr ,
     output [31:0] data_sram_wdata,
     output [ 4:0] es_to_ds_dest  ,
-    output        es_to_ds_load_op
+    output        es_to_ds_load_op,
+    output [31:0] es_to_ds_result
 );
 
 reg         es_valid      ;
@@ -88,8 +89,10 @@ wire [31:0] alu_result ;
 // did't use in lab7
 wire        es_res_from_mem;
 assign es_res_from_mem = es_load_op;
-assign es_to_ds_dest    = dest & {5{es_valid}};
+assign es_to_ds_dest    = dest & {5{es_valid && gr_we}};
 assign es_to_ds_load_op = res_from_mem & es_valid;
+assign es_to_ds_result  = alu_result;
+
 
 
 assign es_to_ms_bus = {res_from_mem,  //70:70 1

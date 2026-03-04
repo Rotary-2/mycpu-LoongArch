@@ -40,11 +40,15 @@ wire [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus;
 wire [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus;
 wire [`WS_TO_RF_BUS_WD -1:0] ws_to_rf_bus;
 wire [`BR_BUS_WD       -1:0] br_bus;
-// hazard detection: forwarded dest registers & load flag
+// hazard detection: forwarded dest registers, load flag and forwarded values
 wire [ 4:0] es_to_ds_dest;
 wire        es_to_ds_load_op;
+wire [31:0] es_to_ds_result;
 wire [ 4:0] ms_to_ds_dest;
+wire [31:0] ms_to_ds_result;
 wire [ 4:0] ws_to_ds_dest;
+wire [31:0] ws_to_ds_result;
+
 
 // IF stage
 if_stage if_stage(
@@ -82,10 +86,14 @@ id_stage id_stage(
     .br_bus         (br_bus         ),
     //to rf: for write back
     .ws_to_rf_bus   (ws_to_rf_bus   ),
-    // hazard: forwarded dest registers
-    .es_to_ds_dest  (es_to_ds_dest  ),
-    .ms_to_ds_dest  (ms_to_ds_dest  ),
-    .ws_to_ds_dest  (ws_to_ds_dest  )
+    // hazard: forwarded dest/data
+    .es_to_ds_dest    (es_to_ds_dest    ),
+    .es_to_ds_load_op (es_to_ds_load_op ),
+    .es_to_ds_result  (es_to_ds_result  ),
+    .ms_to_ds_dest    (ms_to_ds_dest    ),
+    .ms_to_ds_result  (ms_to_ds_result  ),
+    .ws_to_ds_dest    (ws_to_ds_dest    ),
+    .ws_to_ds_result  (ws_to_ds_result  )
 );
 
 // EXE stage
@@ -106,9 +114,10 @@ exe_stage exe_stage(
     .data_sram_we    (data_sram_we    ),
     .data_sram_addr  (data_sram_addr  ),
     .data_sram_wdata (data_sram_wdata ),
-    // hazard: forwarded dest & load flag
+    // hazard: forwarded dest/data & load flag
     .es_to_ds_dest   (es_to_ds_dest   ),
-    .es_to_ds_load_op(es_to_ds_load_op)
+    .es_to_ds_load_op(es_to_ds_load_op),
+    .es_to_ds_result (es_to_ds_result )
 );
 
 // MEM stage
@@ -126,8 +135,9 @@ mem_stage mem_stage(
     .ms_to_ws_bus   (ms_to_ws_bus   ),
     //from data-sram
     .data_sram_rdata(data_sram_rdata),
-    // hazard: forwarded dest
-    .ms_to_ds_dest  (ms_to_ds_dest  )
+    // hazard: forwarded dest/data
+    .ms_to_ds_dest  (ms_to_ds_dest  ),
+    .ms_to_ds_result(ms_to_ds_result)
 );
 
 // WB stage
@@ -141,8 +151,9 @@ wb_stage wb_stage(
     .ms_to_ws_bus     (ms_to_ws_bus     ),
     //to rf: for write back
     .ws_to_rf_bus     (ws_to_rf_bus     ),
-    // hazard: forwarded dest
+    // hazard: forwarded dest/data
     .ws_to_ds_dest    (ws_to_ds_dest    ),
+    .ws_to_ds_result  (ws_to_ds_result  ),
     //trace debug interface
     .debug_wb_pc      (debug_wb_pc      ),
     .debug_wb_rf_we   (debug_wb_rf_we   ),

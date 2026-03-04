@@ -67,7 +67,7 @@ assign fs_to_ds_bus = {fs_inst ,
 
 
 // pre-IF stage
-assign to_fs_valid  = ~reset && pre_if_ready_go;
+assign to_fs_valid  = ~reset;
 // because after sending fs_pc to ds, the seq_pc = fs_pc + 4 immediately
 // Actually, the seq_pc is just a delay slot instruction
 // if we use inst pc, here need to -4, it's more troublesome
@@ -96,7 +96,7 @@ always @(posedge clk) begin
     end
 end
 
-assign inst_sram_en    = to_fs_valid && (fs_allowin || br_taken) && pre_if_ready_go;
+assign inst_sram_en    = to_fs_valid && (fs_allowin || br_taken);
 assign inst_sram_we    = 4'h0;
 assign inst_sram_addr  = nextpc;
 assign inst_sram_wdata = 32'b0;
