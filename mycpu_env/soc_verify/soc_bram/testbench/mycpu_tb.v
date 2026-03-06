@@ -222,7 +222,7 @@ begin
     end
 end
 
-//ģ�⴮�ڴ�ӡ
+//模拟串口打印
 wire uart_display;
 wire [7:0] uart_data;
 assign uart_display = `CONFREG_UART_DISPLAY;
