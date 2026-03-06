@@ -50,7 +50,7 @@ wire        es_ready_go   ;
 
 reg  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus_r;
 
-wire [11:0] alu_op      ;
+wire [18:0] alu_op      ;
 wire        es_load_op;
 wire        src1_is_pc;
 wire        src2_is_imm;
