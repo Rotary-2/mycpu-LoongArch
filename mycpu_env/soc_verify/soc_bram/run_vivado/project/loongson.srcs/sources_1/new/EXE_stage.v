@@ -64,6 +64,8 @@ wire [31:0] rj_value;
 wire [31:0] rkd_value;
 wire [31:0] imm;
 wire [31:0] es_pc;
+wire [2 :0] load_op_type;
+wire [1 :0] store_op_type;
 
 
 assign {alu_op,
@@ -78,8 +80,11 @@ assign {alu_op,
         rj_value,
         rkd_value,
         es_pc,
-        res_from_mem
+        res_from_mem,
+        load_op_type,
+        store_op_type
        } = ds_to_es_bus_r;
+
 
 wire [31:0] alu_src1   ;
 wire [31:0] alu_src2   ;
@@ -95,12 +100,15 @@ assign es_to_ds_result  = alu_result;
 
 
 
-assign es_to_ms_bus = {res_from_mem,  //70:70 1
-                       gr_we       ,  //69:69 1
-                       dest        ,  //68:64 5
-                       alu_result  ,  //63:32 32
-                       es_pc          //31:0  32
+assign es_to_ms_bus = {res_from_mem,
+                       gr_we       ,
+                       dest        ,
+                       alu_result  ,
+                       es_pc       ,
+                       load_op_type,
+                       alu_result[1:0]
                       };
+
 
 assign es_ready_go    = 1'b1;
 assign es_allowin     = !es_valid || es_ready_go && ms_allowin;
@@ -128,10 +136,23 @@ alu u_alu(
     .alu_result (alu_result)
     );
 
+wire [3:0] stb_we;
+wire [3:0] sth_we;
+
+assign stb_we = 4'b0001 << alu_result[1:0];
+assign sth_we = alu_result[1] ? 4'b1100 : 4'b0011;
+
 assign data_sram_en    = 1'b1;
-assign data_sram_we    = es_mem_we && es_valid ? 4'hf : 4'h0;
+assign data_sram_we    = (es_mem_we && es_valid) ?
+                         (store_op_type == 2'b01 ? 4'hf   :
+                          store_op_type == 2'b10 ? stb_we :
+                          store_op_type == 2'b11 ? sth_we : 4'h0)
+                         : 4'h0;
 assign data_sram_addr  = alu_result;
-assign data_sram_wdata = rkd_value;
+assign data_sram_wdata = (store_op_type == 2'b10) ? {4{rkd_value[7:0]}}  :
+                         (store_op_type == 2'b11) ? {2{rkd_value[15:0]}} :
+                                                      rkd_value;
+
 
 
 endmodule

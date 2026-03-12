@@ -50,17 +50,25 @@ wire        ms_gr_we;
 wire [ 4:0] ms_dest;
 wire [31:0] ms_alu_result;
 wire [31:0] ms_pc;
+wire [ 2:0] ms_load_op_type;
+wire [ 1:0] ms_addr_low2;
 
 wire [31:0] mem_result;
 wire [31:0] ms_final_result;
+wire [ 7:0] mem_byte;
+wire [15:0] mem_half;
+wire [31:0] load_result;
 
 
-assign {ms_res_from_mem,  //70:70
-        ms_gr_we       ,  //69:69
-        ms_dest        ,  //68:64
-        ms_alu_result  ,  //63:32
-        ms_pc             //31:0
+assign {ms_res_from_mem,
+        ms_gr_we       ,
+        ms_dest        ,
+        ms_alu_result  ,
+        ms_pc          ,
+        ms_load_op_type,
+        ms_addr_low2
        } = es_to_ms_bus_r;
+
 
 assign ms_to_ws_bus = {ms_gr_we       ,  //69:69
                        ms_dest        ,  //68:64
@@ -86,8 +94,22 @@ always @(posedge clk) begin
     end
 end
 
-assign mem_result   = data_sram_rdata;
-assign ms_final_result = ms_res_from_mem ? mem_result : ms_alu_result;
+assign mem_result = data_sram_rdata;
+assign mem_byte   = (ms_addr_low2 == 2'b00) ? mem_result[ 7: 0] :
+                    (ms_addr_low2 == 2'b01) ? mem_result[15: 8] :
+                    (ms_addr_low2 == 2'b10) ? mem_result[23:16] :
+                                              mem_result[31:24];
+assign mem_half   = ms_addr_low2[1] ? mem_result[31:16] : mem_result[15:0];
+
+assign load_result = (ms_load_op_type == 3'b001) ? mem_result                 :
+                     (ms_load_op_type == 3'b010) ? {{24{mem_byte[7]}}, mem_byte} :
+                     (ms_load_op_type == 3'b011) ? {{16{mem_half[15]}}, mem_half} :
+                     (ms_load_op_type == 3'b100) ? {24'b0, mem_byte}           :
+                     (ms_load_op_type == 3'b101) ? {16'b0, mem_half}           :
+                                                    mem_result;
+
+assign ms_final_result = ms_res_from_mem ? load_result : ms_alu_result;
+
 
 endmodule
 
